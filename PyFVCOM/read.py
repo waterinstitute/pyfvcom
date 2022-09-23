@@ -47,6 +47,8 @@ class _TimeReader(object):
         self._dims = copy.deepcopy(dims)
         self._mjd_origin = 'days since 1858-11-17 00:00:00'
         self._using_calendar_time = True  # for non-calendar runs, we need to skip the datetime stuff.
+        #self._using_calendar_time = False  # for non-calendar runs, we need to skip the datetime stuff.
+        #print(self._using_calendar_time)
 
         time_variables = ('time', 'Itime', 'Itime2', 'Times')
         got_time, missing_time = [], []
@@ -120,6 +122,9 @@ class _TimeReader(object):
                     time_units = getattr(dataset.variables['time'], 'units')
                     if time_units.split()[-1] == '0.0':
                         self._using_calendar_time = False
+                    # Add a condition for legacy format    
+                    if time_units.split()[-1] == '00:00:00':
+                        self._using_calendar_time = False
                     if self._using_calendar_time:
                         _dates = num2date(self.time, units=time_units)
                     else:
@@ -180,11 +185,26 @@ class _TimeReader(object):
                         fmt = '%Y/%m/%d %H:%M:%S.%f'
                         _dates = np.array([datetime.strptime(''.join(t.astype(str)).strip(), fmt) for t in self.Times])
                 elif 'time' in got_time:
+                    # Add option to check some legacy format found in fvcom v2.7 outputs
+                    time_units = getattr(dataset.variables['time'], 'units')
+                    if time_units.split()[-1] == '0.0':
+                        self._using_calendar_time = False
+                    if time_units.split()[-1] == '00:00:00':
+                        self._using_calendar_time = False
+                    if self._using_calendar_time:
+                        #_dates = num2date(self.time, units=time_units)
                     _dates = num2date(self.time, units=getattr(dataset.variables['time'], 'units'))
+                    else:
+                        times_units='seconds since 2000-01-01T00:00:00'
+                        #_dates = [None] * len(self.time)
+                        _dates = num2date(self.time, units=times_units)
+
+                    #_dates = num2date(self.time, units=getattr(dataset.variables['time'], 'units'))
                 else:
                     raise ValueError('Missing sufficient time information to make the relevant time data.')
 
                 # We're making Modified Julian Days here to replicate FVCOM's 'time' variable.
+                #print(_dates)
                 _datenum = date2num(_dates, units=self._mjd_origin)
                 self.Itime = np.floor(_datenum)
                 self.Itime2 = (_datenum - np.floor(_datenum)) * 1000 * 60 * 60 * 24  # microseconds since midnight
