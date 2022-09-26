@@ -193,7 +193,7 @@ class _TimeReader(object):
                         self._using_calendar_time = False
                     if self._using_calendar_time:
                         #_dates = num2date(self.time, units=time_units)
-                    _dates = num2date(self.time, units=getattr(dataset.variables['time'], 'units'))
+                        _dates = num2date(self.time, units=getattr(dataset.variables['time'], 'units'))
                     else:
                         times_units='seconds since 2000-01-01T00:00:00'
                         #_dates = [None] * len(self.time)
